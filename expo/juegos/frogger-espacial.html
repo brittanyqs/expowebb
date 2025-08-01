@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Frogger Espacial</title>
+  <style>
+    body { margin: 0; background: #000; color: white; text-align: center; font-family: sans-serif; }
+    canvas { background: #05001a; display: block; margin: auto; border: 2px solid #fff; }
+    #info { margin: 10px; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="400" height="600"></canvas>
+  <div id="info">Vidas: <span id="vidas">3</span> | Puntos: <span id="score">0</span></div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const grid = 40;
+    const frog = { x: 5 * grid, y: 14 * grid, w: grid, h: grid };
+    let score = 0;
+    let vidas = 3;
+
+    const naves = [];
+    const asteroides = [];
+
+    function crearObjetos() {
+      // Naves espaciales (enemigos) en parte inferior
+      for (let i = 0; i < 3; i++) {
+        naves.push({ x: i * 160, y: 12 * grid, w: grid, h: grid, speed: 2 + Math.random() * 1 });
+        naves.push({ x: i * 180, y: 11 * grid, w: grid, h: grid, speed: -2 - Math.random() });
+      }
+
+      // Asteroides flotantes (plataformas seguras) en parte superior
+      for (let i = 0; i < 3; i++) {
+        asteroides.push({ x: i * 140, y: 3 * grid, w: grid * 2, h: grid, speed: 1.5 });
+        asteroides.push({ x: i * 180, y: 2 * grid, w: grid * 2, h: grid, speed: -2 });
+      }
+    }
+
+    function resetFrog() {
+      frog.x = 5 * grid;
+      frog.y = 14 * grid;
+    }
+
+    function colision(a, b) {
+      return a.x < b.x + b.w &&
+             a.x + a.w > b.x &&
+             a.y < b.y + b.h &&
+             a.y + a.h > b.y;
+    }
+
+    function update() {
+      // Mover enemigos y plataformas
+      naves.forEach(n => {
+        n.x += n.speed;
+        if (n.x > canvas.width) n.x = -n.w;
+        if (n.x + n.w < 0) n.x = canvas.width;
+      });
+
+      asteroides.forEach(a => {
+        a.x += a.speed;
+        if (a.x > canvas.width) a.x = -a.w;
+        if (a.x + a.w < 0) a.x = canvas.width;
+      });
+
+      // Si está en zona de asteroides (agua espacial)
+      if (frog.y < 4 * grid && frog.y >= 2 * grid) {
+        let sobreAsteroide = false;
+        asteroides.forEach(a => {
+          if (colision(frog, a)) {
+            sobreAsteroide = true;
+            frog.x += a.speed;
+          }
+        });
+
+        if (!sobreAsteroide) {
+          vidas--;
+          resetFrog();
+        }
+      }
+
+      // Colisión con naves
+      naves.forEach(n => {
+        if (colision(frog, n)) {
+          vidas--;
+          resetFrog();
+        }
+      });
+
+      // Llegar a la meta
+      if (frog.y < grid) {
+        score += 10;
+        resetFrog();
+      }
+
+      if (vidas <= 0) {
+        alert("💀 ¡Juego terminado! Puntaje: " + score);
+        document.location.reload();
+      }
+
+      document.getElementById("vidas").textContent = vidas;
+      document.getElementById("score").textContent = score;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Dibujar fondo
+      ctx.fillStyle = "#222";
+      ctx.fillRect(0, 0, canvas.width, grid * 5); // zona de asteroides
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, grid * 5, canvas.width, grid * 10); // zona de naves
+
+      // Dibujar rana
+      ctx.fillStyle = "#0f0";
+      ctx.fillRect(frog.x, frog.y, frog.w, frog.h);
+
+      // Dibujar naves
+      ctx.fillStyle = "#f33";
+      naves.forEach(n => {
+        ctx.fillRect(n.x, n.y, n.w, n.h);
+      });
+
+      // Dibujar asteroides
+      ctx.fillStyle = "#888";
+      asteroides.forEach(a => {
+        ctx.fillRect(a.x, a.y, a.w, a.h);
+      });
+
+      // Dibujar zona meta
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, grid);
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    crearObjetos();
+    loop();
+
+    // Movimiento con flechas
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft") frog.x -= grid;
+      if (e.key === "ArrowRight") frog.x += grid;
+      if (e.key === "ArrowUp") frog.y -= grid;
+      if (e.key === "ArrowDown") frog.y += grid;
+
+      // Limitar al canvas
+      if (frog.x < 0) frog.x = 0;
+      if (frog.x + frog.w > canvas.width) frog.x = canvas.width - frog.w;
+      if (frog.y + frog.h > canvas.height) frog.y = canvas.height - frog.h;
+    });
+  </script>
+</body>
+</html>
